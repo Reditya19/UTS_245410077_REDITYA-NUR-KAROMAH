@@ -3,27 +3,10 @@
 #JAWABAN UTS
 #1. Jelaskan teorema CAP dan BASE dan keterkaitan keduanya. Jelaskan menggunakan contoh yang pernah anda gunakan. 
 Penjelasan singkat
-CAP (Brewer): pada sistem terdistribusi ada tiga sifat penting: Consistency (C), Availability (A), dan Partition tolerance (P). Teorema CAP menyatakan: ketika terjadi network partition (node tidak bisa saling berkomunikasi), sistem hanya bisa menjamin C atau A, bukan keduanya. Karena partisi jaringan nyata bisa terjadi kapan saja, praktiknya sistem harus menerima P dan memilih antara C atau A saat partisi.
-BASE adalah pola desain untuk sistem yang memilih Availability saat terjadi partisi. Singkatan:
-Basically Available — sistem tetap merespons request.
-Soft state — state dapat berubah-ubah sebelum konvergen.
-Eventual consistency — pada akhirnya semua replica akan konvergen kalau tidak ada update lebih lanjut.
-Hubungan CAP ↔ BASE
-CAP adalah aturan trade-off (teori).
-BASE adalah pendekatan praktis bila kita memilih A + P dari CAP: sistem tetap melayani, lalu menyelesaikan inkonsistensi nanti sampai konvergen.
-Contoh nyata (yang saya pernah pakai — shopping cart terdistribusi)
-Kasus: layanan shopping cart yang disebar ke beberapa region supaya akses cepat.
-Arsitektur: setiap region punya replica cart lokal yang melayani pengguna regional.
-Kejadian: kalau ada network partition antara region A dan central service, user di region A masih bisa add-to-cart (system memilih Availability). Operasi dicatat sebagai event lokal (soft state).
-Setelah koneksi pulih, event direplikasi ke central, dan konflik (mis. duplicate item) diselesaikan sesuai kebijakan (mis. jumlah ditambah atau last-writer-wins).
-Hasil: pengguna jarang menemui kegagalan operasional, dan data akan mencapai konsistensi akhirnya — eventual consistency.
+Teorema CAP pada dasarnya menjelaskan batasan yang pasti ditemui ketika kita membangun sistem yang berjalan di lebih dari satu server. Waktu saya mengerjakan sistem inventori sederhana yang disebar di beberapa node (dipakai untuk mencatat keluar–masuk barang), saya baru sadar kenapa kadang data terlihat berbeda antar server ketika jaringan internal kantor sedang kurang stabil. Dalam kondisi jaringan terputus itu, ternyata sistem harus memilih antara menjaga data tetap konsisten atau tetap melayani permintaan pengguna. Kalau server saya memaksa konsisten, sebagian request saya memang sengaja ditolak sampai koneksi antar node normal kembali. Tapi ketika saya coba mode yang mengutamakan ketersediaan, server tetap melayani permintaan meskipun data antar node tidak langsung sama. Dari situ saya paham inti CAP: ketika jaringan pecah, kita tidak bisa mendapatkan konsistensi dan ketersediaan sekaligus.
+
+Sementara BASE itu lebih ke pendekatan praktis yang sering dipakai ketika kita memilih ketersediaan lebih tinggi. Sistem yang saya pakai tadi akhirnya condong ke konsep BASE—server tetap melayani (basically available), datanya kadang terlihat belum sinkron (soft state), lalu beberapa detik kemudian baru menyamakan diri setelah replikasi berjalan (eventual consistency). Jadi, hubungan CAP dan BASE itu seperti teori dan praktik: CAP memberi batasan bahwa kita tidak bisa punya semuanya ketika jaringan bermasalah, sedangkan BASE adalah cara membangun sistem yang tetap “berjalan lancar” walaupun konsistensi sempurna baru tercapai beberapa saat kemudian.
+
 
 #2. Jelaskan keterkaitan antara GraphQL dengan komunikasi antar proses pada sistem terdistribusi. Buat diagramnya. 
-Inti hubungan (sederhana)
-GraphQL adalah bahasa query untuk API — berguna untuk meminta bentuk data yang pas.
-Di arsitektur microservices, GraphQL biasanya ditempatkan di API Gateway atau BFF (Backend-for-Frontend). Di sana GraphQL mengorkestrasi banyak panggilan antar-layanan (IPC) — mis. HTTP, gRPC, atau via message queue — lalu menggabungkan hasilnya menjadi satu response untuk klien.
-Jadi GraphQL bukan protokol IPC; dia adalah lapisan komposisi yang menerjemahkan query klien menjadi banyak panggilan IPC internal.
-Kapan GraphQL berguna
-Klien cuma butuh satu request untuk gabungan data dari beberapa layanan → mengurangi round-trip.
-Menyembunyikan kompleksitas backend yang terdistribusi.
-Cocok ketika data yang diminta bersifat read/aggregate; untuk operasi write/transactional biasanya tetap pakai endpoint tersendiri.
+Waktu saya membuat layanan yang datanya tersebar di beberapa service kecil (misalnya data user ada di satu service, data produk di service lain, dan data pesanan di service terpisah), saya menemukan bahwa GraphQL itu sangat membantu untuk mengatur komunikasi antar-service tersebut tanpa harus membuat client memanggil service satu per satu. GraphQL bekerja seperti pintu depan yang menerima permintaan dari pengguna, lalu di belakang layar ia menghubungkan diri ke berbagai service internal sesuai kebutuhan data yang diminta. Jadi satu query dari client bisa memicu beberapa proses komunikasi antar-layanan: ada yang mengambil data user, ada yang mengambil detail barang, ada juga yang membaca riwayat transaksi. Semuanya kemudian dikumpulkan dan dirangkai menjadi satu respons yang rapih untuk dikirim balik ke client. Dengan cara itu, GraphQL sebenarnya tidak menggantikan komunikasi antar-proses, tetapi menjadi pengatur alur panggilan sehingga client tidak perlu tahu kompleksitas di dalam sistem.
