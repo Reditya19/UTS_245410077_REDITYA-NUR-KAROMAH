@@ -2,11 +2,37 @@
 
 #JAWABAN UTS
 #1. Jelaskan teorema CAP dan BASE dan keterkaitan keduanya. Jelaskan menggunakan contoh yang pernah anda gunakan. 
-Penjelasan singkat
-Teorema CAP pada dasarnya menjelaskan batasan yang pasti ditemui ketika kita membangun sistem yang berjalan di lebih dari satu server. Waktu saya mengerjakan sistem inventori sederhana yang disebar di beberapa node (dipakai untuk mencatat keluar–masuk barang), saya baru sadar kenapa kadang data terlihat berbeda antar server ketika jaringan internal kantor sedang kurang stabil. Dalam kondisi jaringan terputus itu, ternyata sistem harus memilih antara menjaga data tetap konsisten atau tetap melayani permintaan pengguna. Kalau server saya memaksa konsisten, sebagian request saya memang sengaja ditolak sampai koneksi antar node normal kembali. Tapi ketika saya coba mode yang mengutamakan ketersediaan, server tetap melayani permintaan meskipun data antar node tidak langsung sama. Dari situ saya paham inti CAP: ketika jaringan pecah, kita tidak bisa mendapatkan konsistensi dan ketersediaan sekaligus.
 
-Sementara BASE itu lebih ke pendekatan praktis yang sering dipakai ketika kita memilih ketersediaan lebih tinggi. Sistem yang saya pakai tadi akhirnya condong ke konsep BASE—server tetap melayani (basically available), datanya kadang terlihat belum sinkron (soft state), lalu beberapa detik kemudian baru menyamakan diri setelah replikasi berjalan (eventual consistency). Jadi, hubungan CAP dan BASE itu seperti teori dan praktik: CAP memberi batasan bahwa kita tidak bisa punya semuanya ketika jaringan bermasalah, sedangkan BASE adalah cara membangun sistem yang tetap “berjalan lancar” walaupun konsistensi sempurna baru tercapai beberapa saat kemudian.
+a. Teorema CAP menjelaskan bahwa dalam sistem terdistribusi, sebuah sistem tidak dapat sekaligus memenuhi Consistency,
+   Availability, dan Partition Tolerance secara bersamaan. Artinya, ketika terjadi gangguan jaringan antar-node, sistem 
+   harus memilih apakah ingin tetap konsisten atau tetap tersedia. Sistem yang memprioritaskan konsistensi akan memastikan 
+   semua node memiliki data yang sama meskipun harus menolak beberapa permintaan, sedangkan sistem yang mengutamakan ketersediaan
+   tetap merespons permintaan meskipun data yang diberikan belum tentu versi terbaru. Konsep CAP ini kemudian berkaitan dengan 
+   pendekatan BASE yang banyak digunakan oleh database NoSQL.
+
+b. Sementara BASE itu lebih ke pendekatan praktis yang sering dipakai ketika kita memilih ketersediaan 
+   lebih tinggi. Sistem yang saya pakai tadi akhirnya condong ke konsep BASE—server tetap melayani (basically available),
+   datanya kadang terlihat belum sinkron (soft state), lalu beberapa detik kemudian baru menyamakan diri setelah replikasi 
+   berjalan (eventual consistency). Jadi, hubungan CAP dan BASE itu seperti teori dan praktik: CAP memberi batasan bahwa 
+   kita tidak bisa punya semuanya ketika jaringan bermasalah, sedangkan BASE adalah cara membangun sistem yang tetap 
+   “berjalan lancar” walaupun konsistensi sempurna baru tercapai beberapa saat kemudian.
+
+c. contohnya 
+   saya memakai dua aplikasi catatan di HP dan laptop yang tersinkron lewat internet. Pernah beberapa kali saya memperbarui catatan 
+   di HP ketika jaringan sedang jelek. Aplikasi tetap bisa dipakai (availability), tapi perubahan di HP tidak langsung muncul di laptop 
+   (consistency hilang karena “partition”, yaitu koneksi terputus). Setelah koneksi pulih, catatan di laptop akhirnya ikut berubah. Situasi 
+   ini menggambarkan konsep BASE, yaitu konsistensi yang datang belakangan, dan sekaligus menunjukkan bagaimana CAP bekerja: sistem memilih tetap tersedia meskipun
+   konsistensi sementara hilang. Dari pengalaman itu, terlihat jelas bahwa CAP dan BASE saling berkaitan—ketika sistem memilih tetap 
+   berjalan meskipun terjadi gangguan jaringan, maka otomatis sistem menerapkan prinsip BASE sebagai cara menjaga pengalaman pengguna tetap lancar.
 
 
 #2. Jelaskan keterkaitan antara GraphQL dengan komunikasi antar proses pada sistem terdistribusi. Buat diagramnya. 
-Waktu saya membuat layanan yang datanya tersebar di beberapa service kecil (misalnya data user ada di satu service, data produk di service lain, dan data pesanan di service terpisah), saya menemukan bahwa GraphQL itu sangat membantu untuk mengatur komunikasi antar-service tersebut tanpa harus membuat client memanggil service satu per satu. GraphQL bekerja seperti pintu depan yang menerima permintaan dari pengguna, lalu di belakang layar ia menghubungkan diri ke berbagai service internal sesuai kebutuhan data yang diminta. Jadi satu query dari client bisa memicu beberapa proses komunikasi antar-layanan: ada yang mengambil data user, ada yang mengambil detail barang, ada juga yang membaca riwayat transaksi. Semuanya kemudian dikumpulkan dan dirangkai menjadi satu respons yang rapih untuk dikirim balik ke client. Dengan cara itu, GraphQL sebenarnya tidak menggantikan komunikasi antar-proses, tetapi menjadi pengatur alur panggilan sehingga client tidak perlu tahu kompleksitas di dalam sistem.
+GraphQL dapat berperan sebagai penghubung komunikasi antar proses dalam sebuah sistem terdistribusi karena ia bertindak 
+sebagai pintu masuk tunggal yang menerima permintaan dari klien dan meneruskannya ke layanan-layanan lain di belakangnya.
+Dalam sistem yang terdiri dari banyak microservice, setiap layanan biasanya memiliki fungsi dan data sendiri-sendiri, sehingga
+klien perlu berkomunikasi dengan beberapa layanan sekaligus. Jika menggunakan REST biasa, klien harus memanggil banyak endpoint 
+yang berbeda, sedangkan dengan GraphQL, klien cukup mengirim satu query dan GraphQL akan menyalurkannya ke layanan yang relevan.
+Proses seperti ini membuat komunikasi antar proses di backend menjadi lebih teratur karena semua panggilan dari klien hanya melewati 
+satu titik koordinasi. GraphQL kemudian meneruskan permintaan itu ke service lain seperti Auth, User, Post, atau Comment sesuai bagian 
+data yang diminta klien. Dari situ terlihat bahwa GraphQL bukan hanya alat query data, tetapi juga menjadi jembatan komunikasi antar proses
+dalam sistem terdistribusi yang terdiri dari banyak microservice.
